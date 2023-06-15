@@ -40,9 +40,12 @@ contract ExchangeTest is Test {
     }
 
     function testAddLiqudity() public {
-        wkt.approve(address(exchangePool), 50e18);
-        exchangePool.addLiquditity(50e18);
+        wkt.approve(address(exchangePool), 200e18);
+        exchangePool.addLiquditity{value: 100e18}(200e18);
 
-        assertEq(exchangePool.getReserve(), 50e18);
+        assertEq(exchangePool.getReserve(), 200e18);
+        // assert that the value of the exchange increased by 10 eth
+
+        assertEq(address(exchangePool).balance, 100e18);
     }
 }
