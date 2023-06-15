@@ -4,16 +4,45 @@ pragma solidity ^0.8.13;
 import "forge-std/Test.sol";
 import {Utilities} from "./utils/Utillities.sol";
 
-contract ExchangeTest is Test {
-    function setUp() public {}
+import "../src/Exchange.sol";
+import "../src/K3llyToken.sol";
 
-    function testIncrement() public {
-        // counter.increment();
-        // assertEq(counter.number(), 1);
+contract ExchangeTest is Test {
+    uint256 internal constant INITITAL_SUPPLY = 1_000e18;
+
+    Utilities internal utils;
+    Exchange internal exchangePool;
+    K3llyToken internal wkt;
+
+    address payable[] internal users;
+
+    function setUp() public {
+        utils = new Utilities();
+        users = utils.createUsers(2);
+
+        address payable alice = users[0];
+        vm.label(alice, "Alice");
+        address payable bob = users[1];
+
+        vm.label(bob, "Bob");
+
+        // vm.label(address(this), "deployer");
+
+        // Deploying WKT
+        wkt = new K3llyToken(INITITAL_SUPPLY);
+
+        // Deploying exchangePool
+        exchangePool = new Exchange(address(wkt));
     }
 
-    function testSetNumber(uint256 x) public {
-        // counter.setNumber(x);
-        // assertEq(counter.number(), x);
+    function testFailWhenDeployingWith0Address() public {
+        Exchange fakeExchange = new Exchange(address(0));
+    }
+
+    function testAddLiqudity() public {
+        wkt.approve(address(exchangePool), 50e18);
+        exchangePool.addLiquditity(50e18);
+
+        assertEq(exchangePool.getReserve(), 50e18);
     }
 }
