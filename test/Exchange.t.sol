@@ -8,7 +8,7 @@ import "../src/Exchange.sol";
 import "../src/K3llyToken.sol";
 
 contract ExchangeTest is Test {
-    uint256 internal constant INITITAL_SUPPLY = 1_000e18;
+    uint256 internal constant INITITAL_SUPPLY = 4_000e18;
 
     Utilities internal utils;
     Exchange internal exchangePool;
@@ -35,8 +35,8 @@ contract ExchangeTest is Test {
         exchangePool = new Exchange(address(wkt));
     }
 
-    function testFailWhenDeployingWith0Address() public {
-        Exchange fakeExchange = new Exchange(address(0));
+    function testFailWhenDeployingTo0Address() public {
+        new Exchange(address(0));
     }
 
     function testAddLiqudity() public {
@@ -47,5 +47,61 @@ contract ExchangeTest is Test {
         // assert that the value of the exchange increased by 10 eth
 
         assertEq(address(exchangePool).balance, 100e18);
+    }
+
+    function testGetPrice() public {
+        wkt.approve(address(exchangePool), 2000e18);
+        exchangePool.addLiquditity{value: 1000e18}(2000e18);
+
+        // balance of eth in reserve pool
+        uint256 ethTotal = address(exchangePool).balance;
+        uint256 wktTotal = exchangePool.getReserve();
+
+        // Eth per WKT
+        assertEq(exchangePool.getPrice(ethTotal, wktTotal), 500); // Will need to divide by 1000 to get official price on frontend.
+
+        // wkt per Eth
+        assertEq(exchangePool.getPrice(wktTotal, ethTotal), 2000);
+    }
+
+    function testGetEthAmount() public {
+        wkt.approve(address(exchangePool), 200e18);
+        exchangePool.addLiquditity{value: 100e18}(200e18);
+
+        assertEq(exchangePool.getReserve(), 200e18);
+        // assert that the value of the exchange increased by 10 eth
+
+        assertEq(address(exchangePool).balance, 100e18);
+
+        uint256 ethOut = exchangePool.getEthAmount(2e18);
+        assertEq(ethOut, 990099009900990099);
+
+        ethOut = exchangePool.getEthAmount(100e18);
+        assertEq(ethOut, 33333333333333333333); // 100 tokens gives me ~33 eth. you'd think it would give me about 50 eth
+
+        ethOut = exchangePool.getEthAmount(2000e18);
+        assertEq(ethOut, 90909090909090909090); // 2_000 gives me about  90.90eth  The price slippage is actually a protector from the pool being drained
+    }
+
+    function testGetTokenAmount() public {
+        wkt.approve(address(exchangePool), 200e18);
+        exchangePool.addLiquditity{value: 100e18}(200e18);
+
+        assertEq(exchangePool.getReserve(), 200e18);
+        // assert that the value of the exchange increased by 10 eth
+
+        assertEq(address(exchangePool).balance, 100e18);
+
+        uint256 tokensOut = exchangePool.getTokenAmount(1e18);
+
+        assertEq(tokensOut, 1980198019801980198); // 1 eth gives me ~1.9 tokens
+
+        tokensOut = exchangePool.getTokenAmount(100e18);
+
+        assertEq(tokensOut, 100000000000000000000); // 100 eth gives me 100 tokens
+
+        tokensOut = exchangePool.getTokenAmount(2000e18);
+
+        assertEq(tokensOut, 190476190476190476190); //2000 eth gives me about 198.00 tokens
     }
 }
