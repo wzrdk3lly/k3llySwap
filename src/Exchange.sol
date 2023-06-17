@@ -35,7 +35,7 @@ contract Exchange {
     ) public pure returns (uint256) {
         if (!(inputReserve > 0 && outputReserve > 0))
             revert ReservePriceCannotBe0();
-        // The 1000 increases the precision since eth doesn't do fixed numbers
+        // The 1000 increases the precision since eth doesn't have fixed numbers
         return (inputReserve * 1000) / outputReserve;
     }
 
@@ -50,8 +50,11 @@ contract Exchange {
         return (inputAmount * outputReserve) / (inputReserve + inputAmount);
     }
 
+    //^y(wkt to send) =  wkt outoutReserve(y) * eth inputAamount (^x) / eth inputReserve(x) + eth input amount(^x)
+    // ^y = y * ^x / x + ^x
+
     /**
-     * @dev returns token amount for the amount of eth sold
+     * @dev returns token amount for the amount of eth sold (ethsent to address(this)) To this address ()
      * @param _ethSold amount of eth sold
      */
     function getTokenAmount(uint256 _ethSold) public view returns (uint256) {
@@ -70,9 +73,13 @@ contract Exchange {
         return getAmount(_tokenSold, tokenReserve, address(this).balance);
     }
 
+    /**
+     * @dev A user will receive wkt for eth
+     * @param _minTokens the minimum amount of tokens that the user is willing to receive..prevents slippage and sandwich attacks
+     */
     function ethToTokenSwap(uint256 _minTokens) public payable {
         uint256 tokenReserve = getReserve();
-
+        // subtract msg.value because because the eth from the user would have already been sent. We need to adjust for true eth reserve amount
         uint256 tokensBought = getAmount(
             msg.value,
             address(this).balance - msg.value,
@@ -83,6 +90,11 @@ contract Exchange {
         IERC20(tokenAddress).transfer(msg.sender, tokensBought);
     }
 
+    /**
+     * @dev Swap a users token sent and send the user proper amount of eth.
+     * @param _tokensSold amount of tokns sold to k3lly swap in exchange for eth
+     * @param _minEth the minimum amount of eth to be sent to the user
+     */
     function tokenToEthSwap(uint256 _tokensSold, uint256 _minEth) public {
         uint256 tokenReserve = getReserve();
 
@@ -102,5 +114,3 @@ contract Exchange {
         payable(msg.sender).transfer(ethBought);
     }
 }
-
-//@note Assumed pricing:  if x is wkt and y is eth -> Price of x is Px and Px = y/x -> 200 wkt and 100 eth means price of wkt is 100 eth /200 which is .5 eth per 1 wkt. It's 2wkt per 1 eth.

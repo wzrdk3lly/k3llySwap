@@ -88,7 +88,6 @@ contract ExchangeTest is Test {
         exchangePool.addLiquditity{value: 100e18}(200e18);
 
         assertEq(exchangePool.getReserve(), 200e18);
-        // assert that the value of the exchange increased by 10 eth
 
         assertEq(address(exchangePool).balance, 100e18);
 
@@ -104,4 +103,35 @@ contract ExchangeTest is Test {
 
         assertEq(tokensOut, 190476190476190476190); //2000 eth gives me about 198.00 tokens
     }
+
+    function testEthToTokenSwap() public {
+        wkt.approve(address(exchangePool), 200e18);
+        exchangePool.addLiquditity{value: 100e18}(200e18);
+
+        uint256 balanceBeforeSwap = wkt.balanceOf(address(this));
+
+        exchangePool.ethToTokenSwap{value: 1e18}(1e18);
+
+        uint256 balanceAfterSwap = wkt.balanceOf(address(this));
+
+        // assuming no fees
+        assertEq(balanceAfterSwap - balanceBeforeSwap, 1980198019801980198);
+    }
+
+    function testTokenToEthSwap() public {
+        wkt.approve(address(exchangePool), 202e18);
+        exchangePool.addLiquditity{value: 100e18}(200e18);
+
+        uint256 balanceBeforeSwap = address(this).balance;
+
+        exchangePool.tokenToEthSwap(2e18, 9e17);
+
+        uint256 balanceAfterSwap = address(this).balance;
+
+        console2.log(balanceAfterSwap - balanceBeforeSwap);
+        // LE because of gas fee
+        assertLe(balanceAfterSwap - balanceBeforeSwap, 990099009900990099);
+    }
+
+    receive() external payable {}
 }
